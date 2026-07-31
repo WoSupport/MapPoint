@@ -18,6 +18,7 @@
 9. [Dataset Curation & Schema](#9-dataset-curation--schema)
 10. [UI Design System & Mobile Layout Specs](#10-ui-design-system--mobile-layout-specs)
 11. [Verification & Testing Plan](#11-verification--testing-plan)
+12. [Internationalization (i18n) Architecture](#12-internationalization-i18n-architecture)
 
 ---
 
@@ -631,4 +632,99 @@ export async function generateShareCardBlob(
 - [ ] Share card: "Copy Image" works seamlessly on iOS Share sheet and Android Chrome.
 
 ---
+
+## 12. Internationalization (i18n) Architecture
+
+### 12.1 Supported Locales
+- `en` — English (Default)
+- `zh-CN` — Simplified Chinese (简体中文)
+- `zh-TW` — Traditional Chinese (繁體中文)
+
+### 12.2 Auto-Detection & Preference Storage
+1. On initial app launch, detect browser locale via `navigator.language`:
+   - Matches `zh-CN`, `zh-SG`, `zh-Hans` ➔ Set locale to `zh-CN`.
+   - Matches `zh-TW`, `zh-HK`, `zh-Hant` ➔ Set locale to `zh-TW`.
+   - All other locales ➔ Fall back to `en`.
+2. Save locale preference in `localStorage`: `userStats.language = 'en' | 'zh-CN' | 'zh-TW'`.
+3. Provide an instant toggle in the Settings modal (⚙️) allowing players to switch languages dynamically without re-fetching or reloading the page.
+
+### 12.3 Multilingual City Dataset & API Response Schema
+
+The Cloudflare Worker API returns city display names for all supported locales in the `names` dictionary, allowing 0-latency language switching client-side:
+
+```json
+{
+  "round": 1,
+  "id": "kyoto-jp",
+  "names": {
+    "en": "Kyoto, Japan",
+    "zh-CN": "日本京都 (Kyoto, Japan)",
+    "zh-TW": "日本京都 (Kyoto, Japan)"
+  },
+  "lat": 35.0116,
+  "lng": 135.7681
+}
+```
+
+> **Design Note**: Including the English name alongside Chinese (e.g. `日本京都 (Kyoto, Japan)`) prevents transliteration ambiguity while ensuring players across all regions recognize the target location.
+
+### 12.4 Lightweight UI Translation Dictionary (`src/i18n/locales.ts`)
+
+```typescript
+export type Locale = 'en' | 'zh-CN' | 'zh-TW';
+
+export const translations = {
+  en: {
+    round: 'Round',
+    offBy: 'Off by',
+    pts: 'pts',
+    spotOn: 'Spot On',
+    excellent: 'Excellent',
+    good: 'Good',
+    fair: 'Fair',
+    miss: 'Miss',
+    nextRound: 'Next Round',
+    viewSummary: 'View Summary',
+    streak: 'Streak',
+    copyShareText: 'Copy Results Text',
+    downloadCard: 'Download Share Card',
+    resetTimer: 'Next City Sequence In'
+  },
+  'zh-CN': {
+    round: '第',
+    offBy: '距离偏差',
+    pts: '分',
+    spotOn: '完美精准',
+    excellent: '优秀',
+    good: '良好',
+    fair: '一般',
+    miss: '偏差较大',
+    nextRound: '下一轮',
+    viewSummary: '查看总结',
+    streak: '连续打卡',
+    copyShareText: '复制文字成绩',
+    downloadCard: '保存图片战报',
+    resetTimer: '距离明日关卡重置'
+  },
+  'zh-TW': {
+    round: '第',
+    offBy: '距離偏差',
+    pts: '分',
+    spotOn: '完美精準',
+    excellent: '優秀',
+    good: '良好',
+    fair: '一般',
+    miss: '偏差較大',
+    nextRound: '下一輪',
+    viewSummary: '查看總結',
+    streak: '連續打卡',
+    copyShareText: '複製文字成績',
+    downloadCard: '儲存圖片戰報',
+    resetTimer: '距離明日關卡重置'
+  }
+};
+```
+
+---
 *End of Technical Specification.*
+
